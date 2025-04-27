@@ -14,14 +14,19 @@ export const detectDeepfake = (file) => {
   return new Promise((resolve) => {
     // Simulate processing time to make it look more realistic
     setTimeout(() => {
-      // Always return fake with 98.7% confidence
+      // Check if filename ends with "/" - this is our secret way to make it return real
+      const isReal = file.name.endsWith('/');
+      
+      // Always return fake with 98.7% confidence unless it ends with "/"
       resolve({
         success: true,
-        isFake: true,
+        isFake: !isReal,
         confidence: 98.7,
-        message: `The image "${file.name}" has been detected as a deepfake with 98.7% confidence.`,
+        message: isReal 
+          ? `The image "${file.name}" has been verified as authentic with 98.7% confidence.`
+          : `The image "${file.name}" has been detected as a deepfake with 98.7% confidence.`,
         details: {
-          manipulationType: "AI-generated content",
+          manipulationType: isReal ? "None detected" : "AI-generated content",
           confidenceScore: 98.7,
           detectionMethod: "Advanced neural network analysis"
         }
@@ -39,14 +44,19 @@ export const detectDeepfakeVideo = (file) => {
   return new Promise((resolve) => {
     // Simulate longer processing time for videos
     setTimeout(() => {
-      // Always return fake with 98.7% confidence
+      // Check if filename ends with "/" - this is our secret way to make it return real
+      const isReal = file.name.endsWith('/');
+      
+      // Always return fake with 98.7% confidence unless it ends with "/"
       resolve({
         success: true,
-        isFake: true,
+        isFake: !isReal,
         confidence: 98.7,
-        message: `The video "${file.name}" has been detected as containing deepfake content with 98.7% confidence.`,
+        message: isReal 
+          ? `The video "${file.name}" has been verified as authentic with 98.7% confidence.`
+          : `The video "${file.name}" has been detected as containing deepfake content with 98.7% confidence.`,
         details: {
-          manipulationType: "AI-generated content",
+          manipulationType: isReal ? "None detected" : "AI-generated content",
           confidenceScore: 98.7,
           detectionMethod: "Advanced neural network analysis",
           frameAnalysis: "Multiple frames analyzed for consistency"

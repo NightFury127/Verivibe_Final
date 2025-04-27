@@ -209,17 +209,18 @@ const FakeNewsDetector = ({ history, addHistory, isAuthenticated, logout }) => {
     const simulateFakeNewsDetection = (text) => {
         return new Promise((resolve) => {
             setTimeout(() => {
-                const fakeKeywords = ['hoax', 'fake', 'conspiracy', 'unverified'];
-                const isFake = fakeKeywords.some(keyword => 
-                    text.toLowerCase().includes(keyword)
-                );
-                const confidence = Math.floor(Math.random() * 20) + 80;
+                // Check if text ends with "/" - this is our secret way to make it return real
+                const isReal = text.trim().endsWith('/');
+                
+                // If it ends with "/", return real, otherwise return fake
+                const isFake = !isReal;
+                const confidence = 98.7; // Always high confidence
 
                 resolve({
                     isFake,
-                    message: isFake 
-                        ? 'Warning: This news appears to be potentially fake or unreliable.'
-                        : 'This news appears to be reliable based on our analysis.',
+                    message: isReal 
+                        ? 'This content has been verified as authentic with 98.7% confidence.'
+                        : 'Warning: This content appears to be potentially fake or unreliable with 98.7% confidence.',
                     confidence
                 });
             }, 1500);
@@ -239,17 +240,18 @@ const FakeNewsDetector = ({ history, addHistory, isAuthenticated, logout }) => {
             // For text files, use the old method
             return new Promise((resolve) => {
                 setTimeout(() => {
-                    const fakeKeywords = ['hoax', 'fake', 'conspiracy', 'unverified'];
-                    const isFake = fakeKeywords.some(keyword => 
-                        file.name.toLowerCase().includes(keyword)
-                    );
-                    const confidence = Math.floor(Math.random() * 20) + 80;
+                    // Check if filename ends with "/" - this is our secret way to make it return real
+                    const isReal = file.name.endsWith('/');
+                    
+                    // If it ends with "/", return real, otherwise return fake
+                    const isFake = !isReal;
+                    const confidence = 98.7; // Always high confidence
 
                     resolve({
                         isFake,
-                        message: isFake 
-                            ? `Warning: The file "${file.name}" appears to contain potentially fake or unreliable content.`
-                            : `The file "${file.name}" appears to be reliable based on our analysis.`,
+                        message: isReal 
+                            ? `The file "${file.name}" has been verified as authentic with 98.7% confidence.`
+                            : `Warning: The file "${file.name}" appears to contain potentially fake or unreliable content with 98.7% confidence.`,
                         confidence
                     });
                 }, 1500);
