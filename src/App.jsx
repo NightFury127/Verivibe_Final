@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import Login from './Login';
+import Signup from './Signup';
+import History from './History';
 
 const ParticleCanvas = () => {
     const canvasRef = useRef(null);
@@ -72,7 +76,7 @@ const ParticleCanvas = () => {
     return <canvas id="particles" ref={canvasRef} className="fixed top-0 left-0 w-full h-full -z-10"></canvas>;
 };
 
-const FakeNewsDetector = () => {
+const FakeNewsDetector = ({ history, addHistory, isAuthenticated, logout }) => {
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [newsText, setNewsText] = useState('');
     const [wordCount, setWordCount] = useState(0);
@@ -83,9 +87,12 @@ const FakeNewsDetector = () => {
     const [result, setResult] = useState(null);
     const [confidence, setConfidence] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
-    const [history, setHistory] = useState([]);
     const recognitionRef = useRef(null);
     const fileInputRef = useRef(null);
+    const location = useLocation();
+    const showAuthLinks = !isAuthenticated && !['/login', '/signup'].includes(location.pathname);
+    const showLogout = isAuthenticated && !['/login', '/signup'].includes(location.pathname);
+    const showHistoryButton = !['/login', '/signup', '/history'].includes(location.pathname);
 
     useEffect(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -257,7 +264,11 @@ const FakeNewsDetector = () => {
 
             setResult(response);
             setConfidence(response.confidence);
-            updateHistory(newsText || file?.name || 'File', response);
+            addHistory({
+                text: response.message.substring(0, 50) + (response.message.length > 50 ? '...' : ''),
+                result: response.message,
+                timestamp: new Date().toLocaleTimeString()
+            });
         } catch (error) {
             setResult({
                 isFake: true,
@@ -268,14 +279,6 @@ const FakeNewsDetector = () => {
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const updateHistory = (input, response) => {
-        setHistory(prev => [{
-            text: input.substring(0, 50) + (input.length > 50 ? '...' : ''),
-            result: response.message,
-            timestamp: new Date().toLocaleTimeString()
-        }, ...prev.slice(0, 4)]);
     };
 
     const clearInput = () => {
@@ -293,6 +296,22 @@ const FakeNewsDetector = () => {
     return (
         <div className={`min-h-screen flex items-center justify-center p-5 transition-all duration-500 ${isDarkMode ? 'bg-gradient-to-br from-gray-800 to-gray-700' : 'bg-gradient-to-br from-blue-400 to-purple-500'}`}>
             <ParticleCanvas />
+            {showHistoryButton && (
+                <div className="absolute top-8 left-12 z-10">
+                    <Link to="/history" className="px-5 py-2 rounded-lg bg-gradient-to-br from-blue-400 to-purple-500 text-white font-semibold shadow hover:scale-105 transition-all">History</Link>
+                </div>
+            )}
+            {showAuthLinks && (
+                <div className="absolute top-8 right-12 z-10 flex gap-4">
+                    <Link to="/login" className="px-5 py-2 rounded-lg bg-gradient-to-br from-blue-400 to-purple-500 text-white font-semibold shadow hover:scale-105 transition-all">Login</Link>
+                    <Link to="/signup" className="px-5 py-2 rounded-lg bg-gradient-to-br from-purple-500 to-blue-400 text-white font-semibold shadow hover:scale-105 transition-all">Sign Up</Link>
+                </div>
+            )}
+            {showLogout && (
+                <div className="absolute top-8 right-12 z-10">
+                    <button onClick={logout} className="px-5 py-2 rounded-lg bg-gradient-to-br from-red-400 to-red-600 text-white font-semibold shadow hover:scale-105 transition-all">Logout</button>
+                </div>
+            )}
             <div className={`relative bg-opacity-95 rounded-2xl shadow-2xl p-10 max-w-lg w-full ${isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-800'} animate-[fadeIn_1s_ease-in]`}>
                 <button 
                     className="absolute top-5 right-5 text-2xl bg-transparent border-none cursor-pointer"
@@ -302,7 +321,7 @@ const FakeNewsDetector = () => {
                     {isDarkMode ? '☀️' : '🌙'}
                 </button>
                 <h1 className="text-center text-3xl font-bold uppercase tracking-wider mb-4">
-                    Fake News Detector
+                    Verivibe
                 </h1>
                 <div className={`p-5 rounded-lg mb-6 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} border-l-4 border-blue-400`}>
                     <h2 className="text-xl font-semibold mb-3">About This App</h2>
@@ -394,23 +413,62 @@ const FakeNewsDetector = () => {
                         </div>
                     </div>
                 )}
-                {history.length > 0 && (
-                    <div className={`mt-5 p-4 rounded-lg max-h-48 overflow-y-auto ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                        <h3 className="text-lg font-semibold mb-2">Recent Checks</h3>
-                        {history.map((item, index) => (
-                            <div
-                                key={index}
-                                className={`p-2 border-b last:border-b-0 ${isDarkMode ? 'border-gray-600 hover:bg-gray-600' : 'border-gray-200 hover:bg-gray-200'} transition-all`}
-                            >
-                                <strong>{item.timestamp}</strong>: {item.text}<br />
-                                <span>{item.result}</span>
-                            </div>
-                        ))}
-                    </div>
-                )}
             </div>
         </div>
     );
 };
 
-export default FakeNewsDetector;
+const ProtectedRoute = ({ isAuthenticated, children }) => {
+    const location = useLocation();
+    if (!isAuthenticated) {
+        return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+    return children;
+};
+
+const VerivibeApp = () => {
+    const [history, setHistory] = useState(() => {
+        const saved = localStorage.getItem('verivibe-history');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [isAuthenticated, setIsAuthenticated] = useState(() => {
+        return !!localStorage.getItem('verivibe-auth');
+    });
+
+    useEffect(() => {
+        localStorage.setItem('verivibe-history', JSON.stringify(history));
+    }, [history]);
+
+    useEffect(() => {
+        setIsAuthenticated(!!localStorage.getItem('verivibe-auth'));
+    }, []);
+
+    const addHistory = (entry) => {
+        setHistory(prev => [entry, ...prev.slice(0, 49)]); // keep max 50
+    };
+
+    const clearHistory = () => setHistory([]);
+
+    const logout = () => {
+        localStorage.removeItem('verivibe-auth');
+        setIsAuthenticated(false);
+        window.location.href = '/login';
+    };
+
+    return (
+        <Router>
+            <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/history" element={
+                    <ProtectedRoute isAuthenticated={isAuthenticated}>
+                        <History history={history} onClear={clearHistory} />
+                    </ProtectedRoute>
+                } />
+                <Route path="/*" element={<FakeNewsDetector history={history} addHistory={addHistory} isAuthenticated={isAuthenticated} logout={logout} />} />
+            </Routes>
+        </Router>
+    );
+};
+
+export default VerivibeApp;
