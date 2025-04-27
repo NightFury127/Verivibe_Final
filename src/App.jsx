@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate,
 import Login from './Login';
 import Signup from './Signup';
 import History from './History';
+import { detectDeepfake, detectDeepfakeVideo } from './services/deepfakeService';
 
 const ParticleCanvas = () => {
     const canvasRef = useRef(null);
@@ -226,23 +227,34 @@ const FakeNewsDetector = ({ history, addHistory, isAuthenticated, logout }) => {
     };
 
     const simulateFileAnalysis = (file) => {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                const fakeKeywords = ['hoax', 'fake', 'conspiracy', 'unverified'];
-                const isFake = fakeKeywords.some(keyword => 
-                    file.name.toLowerCase().includes(keyword)
-                );
-                const confidence = Math.floor(Math.random() * 20) + 80;
+        // Check if it's an image or video
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+        
+        if (isImage) {
+            return detectDeepfake(file);
+        } else if (isVideo) {
+            return detectDeepfakeVideo(file);
+        } else {
+            // For text files, use the old method
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const fakeKeywords = ['hoax', 'fake', 'conspiracy', 'unverified'];
+                    const isFake = fakeKeywords.some(keyword => 
+                        file.name.toLowerCase().includes(keyword)
+                    );
+                    const confidence = Math.floor(Math.random() * 20) + 80;
 
-                resolve({
-                    isFake,
-                    message: isFake 
-                        ? `Warning: The file "${file.name}" appears to contain potentially fake or unreliable content.`
-                        : `The file "${file.name}" appears to be reliable based on our analysis.`,
-                    confidence
-                });
-            }, 1500);
-        });
+                    resolve({
+                        isFake,
+                        message: isFake 
+                            ? `Warning: The file "${file.name}" appears to contain potentially fake or unreliable content.`
+                            : `The file "${file.name}" appears to be reliable based on our analysis.`,
+                        confidence
+                    });
+                }, 1500);
+            });
+        }
     };
 
     const checkNews = async () => {
